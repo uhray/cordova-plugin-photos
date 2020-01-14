@@ -285,7 +285,7 @@ public class Photos extends CordovaPlugin {
 							item.put(P_WIDTH, cursor.getInt(cursor.getColumnIndex(WIDTH)));
 							item.put(P_HEIGHT, cursor.getInt(cursor.getColumnIndex(HEIGHT)));
 						}
-						
+
 						double latitude = cursor.getDouble(cursor.getColumnIndex(LATITUDE));
 						double longitude = cursor.getDouble(cursor.getColumnIndex(LONGITUDE));
 						if (latitude != 0 || longitude != 0) {
@@ -351,8 +351,8 @@ public class Photos extends CordovaPlugin {
 
 		String photoId = photo != null ? photo.optString(P_ID, null) : null;
 		int orientation = photo != null ? photo.optInt(P_ORI, DEF_ORI) : DEF_ORI;
-		int width = photo != null ? photo.optInt(D_WIDTH, DEF_WIDTH) : DEF_WIDTH;
-		int height = photo != null ? photo.optInt(D_HEIGHT, DEF_HEIGHT) : DEF_HEIGHT;
+                int quality = photo != null ? photo.optInt(P_QUALITY, DEF_QUALITY) : DEF_QUALITY;
+		int size = photo != null ? photo.optInt(P_SIZE, DEF_SIZE) : DEF_SIZE;
 
 		try {
 			if (photoId == null || photoId.isEmpty() || "null".equalsIgnoreCase(photoId))
@@ -363,12 +363,17 @@ public class Photos extends CordovaPlugin {
 			if (image == null) throw new IllegalStateException(E_PHOTO_ID_WRONG);
 			final ByteArrayOutputStream osImage = new ByteArrayOutputStream();
 
+			// resize
+			double ratio = (double) size / (image.getWidth() >= image.getHeight() ? image.getWidth() : image.getHeight());
+			int width = (int) Math.round(image.getWidth() * ratio);
+			int height = (int) Math.round(image.getHeight() * ratio);
+			Bitmap scaledBitmap = Bitmap.createScaledBitmap(image, width, height, true);
+
+			// rotate
 			Matrix matrix = new Matrix();
 			matrix.postRotate(orientation);
-			width = Math.min(width, image.getWidth());
-			height = Math.min(height, image.getHeight());
-			Bitmap rotatedBitmap = Bitmap.createBitmap(image, 0, 0, image.getWidth(), image.getHeight(), matrix, true);
-			rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, DEF_QUALITY, osImage);
+			Bitmap rotatedBitmap = Bitmap.createBitmap(scaledBitmap, 0, 0, width, height, matrix, true);
+			rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, quality, osImage);
 
 			callbackContext.success(osImage.toByteArray());
 		} catch (Exception e) {
