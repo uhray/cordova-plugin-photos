@@ -31,6 +31,7 @@ import android.net.Uri;
 import android.util.Base64;
 import android.util.Log;
 import android.graphics.Matrix;
+import java.util.HashMap;
 
 import org.apache.cordova.*;
 import org.json.JSONArray;
@@ -108,7 +109,7 @@ public class Photos extends CordovaPlugin {
 
 	@SuppressWarnings("MismatchedReadAndWriteOfArray")
 	private static final String[] PRJ_COLLECTIONS =
-			new String[]{"DISTINCT " + BUCKET_ID, BUCKET_DISPLAY_NAME};
+			new String[]{BUCKET_ID, BUCKET_DISPLAY_NAME};
 
 	@SuppressWarnings("MismatchedReadAndWriteOfArray")
 	private static final String[] PRJ_PHOTOS =
@@ -193,6 +194,7 @@ public class Photos extends CordovaPlugin {
 	private void collections(final JSONObject options, final CallbackContext callbackContext) {
 		final String selection;
 		final String[] selectionArgs;
+
 		switch (options != null ? options.optString(P_C_MODE, P_C_MODE_ROLL) : P_C_MODE_ROLL) {
 			case P_C_MODE_ROLL:
 				selection = BUCKET_DISPLAY_NAME + "=?";
@@ -216,12 +218,21 @@ public class Photos extends CordovaPlugin {
 				selectionArgs,
 				DEFAULT_SORT_ORDER)) {
 			final JSONArray result = new JSONArray();
+      final HashMap<String, String> foundCollections = new HashMap<>();
+
 			if (cursor.moveToFirst()) {
 				do {
 					final JSONObject item = new JSONObject();
-					item.put(P_ID, cursor.getString(cursor.getColumnIndex(BUCKET_ID)));
-					item.put(P_NAME, cursor.getString(cursor.getColumnIndex(BUCKET_DISPLAY_NAME)));
-					result.put(item);
+
+          final String bucketId = cursor.getString(cursor.getColumnIndex(BUCKET_ID));
+
+          if (foundCollections.containsKey(bucketId) == false)
+          {
+            item.put(P_ID, bucketId);
+            item.put(P_NAME, cursor.getString(cursor.getColumnIndex(BUCKET_DISPLAY_NAME)));
+            result.put(item);
+            foundCollections.put(bucketId, bucketId);
+          }
 				} while (cursor.moveToNext());
 			}
 			callbackContext.success(result);
